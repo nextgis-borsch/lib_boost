@@ -25,7 +25,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
 
 project(libboost NONE)
 
@@ -47,12 +47,12 @@ configure_file(${CMAKE_MODULE_PATH}/cmake_uninstall.cmake.in ${CMAKE_CURRENT_BIN
 include_directories ( ${CMAKE_CURRENT_SOURCE_DIR} )
 set(BOOST_INCL "${CMAKE_CURRENT_SOURCE_DIR}/boost")
 
+set(LIB_NAME ${PROJECT_NAME})
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE ${BOOST_INCL})
+
 export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
-
-if(NOT CYGWIN)
-    set_target_properties(${LIB_NAME} PROPERTIES VERSION ${VERSION})
-endif()
 
 if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
     install(DIRECTORY ${BOOST_INCL} DESTINATION "${INSTALL_INC_DIR}")
