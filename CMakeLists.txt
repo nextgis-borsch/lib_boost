@@ -42,7 +42,7 @@ check_version(BOOST_MAJOR_VERSION BOOST_MINOR_VERSION BOOST_REV_VERSION)
 set(VERSION ${BOOST_MAJOR_VERSION}.${BOOST_MINOR_VERSION}.${BOOST_REV_VERSION})
 report_version(${PROJECT_NAME} ${VERSION})
 
-configure_file(${CMAKE_MODULE_PATH}/cmake_uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
 include_directories ( ${CMAKE_CURRENT_SOURCE_DIR} )
 set(BOOST_INCL "${CMAKE_CURRENT_SOURCE_DIR}/boost")
