@@ -36,6 +36,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 include(GNUInstallDirs)
 set(INSTALL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE INTERNAL "Installation directory for headers" FORCE)
+set(INSTALL_INC_FULL_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_INC_DIR}")
 
 include(util)
 check_version(BOOST_MAJOR_VERSION BOOST_MINOR_VERSION BOOST_REV_VERSION)
@@ -44,16 +45,19 @@ report_version(${PROJECT_NAME} ${VERSION})
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
-include_directories ( ${CMAKE_CURRENT_SOURCE_DIR} )
-set(BOOST_INCL "${CMAKE_CURRENT_SOURCE_DIR}/boost")
+set(PUBLIC_HEADER_DIR "${CMAKE_SOURCE_DIR}/boost")
+
+set(PUBLIC_HDRS
+)
 
 set(LIB_NAME ${PROJECT_NAME})
 add_library(${LIB_NAME} INTERFACE)
-target_include_directories(${LIB_NAME} INTERFACE ${BOOST_INCL})
+target_include_directories(${LIB_NAME} INTERFACE "${INSTALL_INC_FULL_DIR}")
+target_sources(${LIB_NAME} INTERFACE ${PUBLIC_HDRS})
 
 export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
-    install(DIRECTORY ${BOOST_INCL} DESTINATION "${INSTALL_INC_DIR}")
+    install(DIRECTORY ${PUBLIC_HEADER_DIR} DESTINATION "${INSTALL_INC_DIR}")
 endif()
