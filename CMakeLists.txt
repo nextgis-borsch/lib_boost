@@ -27,7 +27,7 @@
 
 cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
 
-project(libboost NONE)
+project(boost NONE)
 
 # some init settings
 set(CMAKE_COLOR_MAKEFILE ON)
