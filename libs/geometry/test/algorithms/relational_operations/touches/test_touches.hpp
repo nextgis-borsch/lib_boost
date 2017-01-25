@@ -1,10 +1,12 @@
 // Boost.Geometry (aka GGL, Generic Geometry Library)
 // Unit Test
 
-// Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2007-2015 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2013.
-// Modifications copyright (c) 2013, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2013, 2015, 2016.
+// Modifications copyright (c) 2013-2016 Oracle and/or its affiliates.
+
+// Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
 // Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -43,8 +45,8 @@ void check_touches(Geometry1 const& geometry1,
     detected = bg::touches(geometry2, geometry1);
 
     BOOST_CHECK_MESSAGE(detected == expected,
-        "touches: " << wkt2
-        << " with " << wkt1
+        "touches: " << wkt1
+        << " with " << wkt2
         << " -> Expected: " << expected
         << " detected: " << detected);
 }
@@ -66,6 +68,14 @@ void test_touches(std::string const& wkt1,
     check_touches(v1, geometry2, wkt1, wkt2, expected);
     check_touches(geometry1, v2, wkt1, wkt2, expected);
     check_touches(v1, v2, wkt1, wkt2, expected);
+}
+
+template <typename Geometry1, typename Geometry2>
+void test_geometry(std::string const& wkt1,
+                   std::string const& wkt2,
+                   bool expected)
+{
+    test_touches<Geometry1, Geometry2>(wkt1, wkt2, expected);
 }
 
 

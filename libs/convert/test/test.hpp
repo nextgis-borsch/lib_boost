@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2014 Vladimir Batov.
+// Copyright (c) 2009-2016 Vladimir Batov.
 // Use, modification and distribution are subject to the Boost Software License,
 // Version 1.0. See http://www.boost.org/LICENSE_1_0.txt.
 
@@ -54,9 +54,9 @@ std::ostream& operator<<(std::ostream& stream, change const& chg)
 }
 //]
 //[change_convert_operators
-inline void operator>>(change const& chg, boost::optional<std::string>& str)
+inline void operator>>(change chg, boost::optional<std::string>& str)
 {
-    str = chg.value() == change::up ? "up" : chg.value() == change::dn ? "dn" : "no";
+    str = chg == change::up ? "up" : chg == change::dn ? "dn" : "no";
 }
 
 inline void operator>>(std::string const& str, boost::optional<change>& chg)
