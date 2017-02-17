@@ -79,5 +79,6 @@ export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
+    set(CMAKE_INSTALL_MESSAGE NEVER) # Suppress print messages during installation
     install(DIRECTORY ${PUBLIC_HEADER_DIR} DESTINATION "${INSTALL_INC_DIR}" COMPONENT headers)
 endif()
