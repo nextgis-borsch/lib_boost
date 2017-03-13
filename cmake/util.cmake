@@ -28,7 +28,8 @@
 
 function(check_version major minor rev)
 
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/boost/version.hpp VERSION_H_CONTENTS)
+    set(VERSION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boost/version.hpp)
+    file(READ ${VERSION_FILE} VERSION_H_CONTENTS)
 
     string(REGEX MATCH "BOOST_VERSION[ \t]+([0-9]+)"
       BOOST_VERSION ${VERSION_H_CONTENTS})
@@ -42,6 +43,10 @@ function(check_version major minor rev)
     set(${major} ${MAJOR_VERSION} PARENT_SCOPE)
     set(${minor} ${MINOR_VERSION} PARENT_SCOPE)
     set(${rev} ${REV_VERSION} PARENT_SCOPE)
+
+    # Store version string in file for installer needs
+    file(TIMESTAMP ${VERSION_FILE} VERSION_DATETIME "%Y-%m-%d %H:%M:%S" UTC)
+    file(WRITE ${CMAKE_BINARY_DIR}/version.str "${MAJOR_VERSION}.${MINOR_VERSION}.${REV_VERSION}\n${VERSION_DATETIME}")
 
 endfunction(check_version)
 

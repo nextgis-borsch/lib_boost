@@ -1,3 +1,5 @@
 doc/
 more/
 tools/
+build*/
+inst/

@@ -25,7 +25,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
 project(boost NONE)
 
@@ -48,20 +48,21 @@ if(OSX_FRAMEWORK)
     set(FRAMEWORK_VERSION "${BOOST_MAJOR_VERSION}")
 endif()
 
-if(OSX_FRAMEWORK)
-    set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/Applications" CACHE INTERNAL "Installation directory for executables" FORCE)
-    set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/Library/Frameworks" CACHE INTERNAL "Installation directory for libraries" FORCE)
-    set(INSTALL_INC_DIR "${INSTALL_LIB_DIR}/${PROJECT_NAME}.framework/Headers" CACHE INTERNAL "Installation directory for headers" FORCE)
-    set(SKIP_INSTALL_HEADERS ON)
-    set(SKIP_INSTALL_EXECUTABLES ON)
-    set(SKIP_INSTALL_FILES ON)
-    set(SKIP_INSTALL_DOCS ON)
-    set(SKIP_INSTALL_EXPORT ON)
+#if(OSX_FRAMEWORK)
+#    set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/Applications" CACHE INTERNAL "Installation directory for executables" FORCE)
+#    set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/Library/Frameworks" CACHE INTERNAL "Installation directory for libraries" FORCE)
+#   header only framework
+#    set(INSTALL_INC_DIR "${INSTALL_LIB_DIR}/${PROJECT_NAME}.framework/Headers" CACHE INTERNAL "Installation directory for headers" FORCE)
+#    set(SKIP_INSTALL_HEADERS OFF)
+#    set(SKIP_INSTALL_EXECUTABLES ON)
+#    set(SKIP_INSTALL_FILES ON)
+#    set(SKIP_INSTALL_DOCS ON)
+#    set(SKIP_INSTALL_EXPORT ON)
     set(CMAKE_MACOSX_RPATH ON)
-else()
+#else()
     include(GNUInstallDirs)
     set(INSTALL_INC_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR} CACHE INTERNAL "Installation directory for headers" FORCE)
-endif()
+#endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
 
@@ -75,7 +76,28 @@ add_library(${LIB_NAME} INTERFACE)
 target_include_directories(${LIB_NAME} INTERFACE "${INSTALL_INC_DIR}")
 target_sources(${LIB_NAME} INTERFACE ${PUBLIC_HDRS})
 
-export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake)
+if (REGISTER_PACKAGE)
+    export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake)
+
+    set(EXPORT_PACKAGE_NAME Boost)
+    string(TOUPPER ${EXPORT_PACKAGE_NAME} EXPORT_PACKAGE_NAME_UPPER)
+    set(EXPORT_PACKAGE_LIB_NAME ${LIB_NAME})
+
+    export(PACKAGE ${EXPORT_PACKAGE_NAME})
+
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        ${CMAKE_SOURCE_DIR}/cmake/PackageConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_PACKAGE_NAME}Config.cmake
+        INSTALL_DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_PACKAGE_NAME}ConfigVersion.cmake
+        VERSION ${VERSION}
+        COMPATIBILITY AnyNewerVersion )
+else()
+    export(TARGETS ${LIB_NAME} FILE ${LIB_NAME}-exports.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
+endif()
+
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
