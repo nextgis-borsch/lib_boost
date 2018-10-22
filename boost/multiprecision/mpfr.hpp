@@ -278,6 +278,7 @@ struct mpfr_float_imp<digits10, allocate_dynamic>
                         round_up = true;
                         break;
                      }
+                     ++i;
                   }
                   if(round_up)
                   {
@@ -1286,11 +1287,6 @@ inline void eval_floor(mpfr_float_backend<Digits10, AllocateType>& result, const
 template <unsigned Digits10, mpfr_allocation_type AllocateType>
 inline void eval_trunc(mpfr_float_backend<Digits10, AllocateType>& result, const mpfr_float_backend<Digits10, AllocateType>& val)
 {
-   if(0 == mpfr_number_p(val.data()))
-   {
-      result = boost::math::policies::raise_rounding_error("boost::multiprecision::trunc<%1%>(%1%)", 0, number<mpfr_float_backend<Digits10, AllocateType> >(val), number<mpfr_float_backend<Digits10, AllocateType> >(val), boost::math::policies::policy<>()).backend();
-      return;
-   }
    mpfr_trunc(result.data(), val.data());
 }
 template <unsigned Digits10, mpfr_allocation_type AllocateType>
@@ -1327,7 +1323,12 @@ inline int eval_fpclassify(const mpfr_float_backend<Digits10, AllocateType>& val
 template <unsigned Digits10, mpfr_allocation_type AllocateType>
 inline void eval_pow(mpfr_float_backend<Digits10, AllocateType>& result, const mpfr_float_backend<Digits10, AllocateType>& b, const mpfr_float_backend<Digits10, AllocateType>& e)
 {
-   mpfr_pow(result.data(), b.data(), e.data(), GMP_RNDN);
+   if(mpfr_zero_p(b.data()) && mpfr_integer_p(e.data()) && (mpfr_signbit(e.data()) == 0) && mpfr_fits_ulong_p(e.data(), GMP_RNDN) && (mpfr_get_ui(e.data(), GMP_RNDN) & 1))
+   {
+      mpfr_set(result.data(), b.data(), GMP_RNDN);
+   }
+   else
+      mpfr_pow(result.data(), b.data(), e.data(), GMP_RNDN);
 }
 
 #ifdef BOOST_MSVC
@@ -1505,13 +1506,19 @@ inline void eval_multiply_subtract(mpfr_float_backend<Digits10, AllocateType>& r
 }
 
 template <unsigned Digits10, mpfr_allocation_type AllocateType>
+inline int eval_signbit BOOST_PREVENT_MACRO_SUBSTITUTION(const mpfr_float_backend<Digits10, AllocateType>& arg)
+{
+   return (arg.data()[0]._mpfr_sign < 0) ? 1 : 0;
+}
+
+template <unsigned Digits10, mpfr_allocation_type AllocateType>
 inline std::size_t hash_value(const mpfr_float_backend<Digits10, AllocateType>& val)
 {
    std::size_t result = 0;
    std::size_t len = val.data()[0]._mpfr_prec / mp_bits_per_limb;
    if(val.data()[0]._mpfr_prec % mp_bits_per_limb)
       ++len;
-   for(int i = 0; i < len; ++i)
+   for(std::size_t i = 0; i < len; ++i)
       boost::hash_combine(result, val.data()[0]._mpfr_d[i]);
    boost::hash_combine(result, val.data()[0]._mpfr_exp);
    boost::hash_combine(result, val.data()[0]._mpfr_sign);
@@ -1546,21 +1553,9 @@ typedef number<mpfr_float_backend<50, allocate_stack> >    static_mpfr_float_50;
 typedef number<mpfr_float_backend<100, allocate_stack> >   static_mpfr_float_100;
 
 template<unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
-inline int signbit BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& arg)
-{
-   return (arg.backend().data()[0]._mpfr_sign < 0) ? 1 : 0;
-}
-
-template<unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
 inline boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates> copysign BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& a, const boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>& b)
 {
    return (boost::multiprecision::signbit)(a) != (boost::multiprecision::signbit)(b) ? boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType>, ExpressionTemplates>(-a) : a;
-}
-
-template<unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
-inline int signbit BOOST_PREVENT_MACRO_SUBSTITUTION(const boost::multiprecision::number<boost::multiprecision::debug_adaptor<boost::multiprecision::mpfr_float_backend<Digits10, AllocateType> >, ExpressionTemplates>& arg)
-{
-   return (arg.backend().value().data()[0]._mpfr_sign < 0) ? 1 : 0;
 }
 
 template<unsigned Digits10, boost::multiprecision::mpfr_allocation_type AllocateType, boost::multiprecision::expression_template_option ExpressionTemplates>
@@ -2188,33 +2183,64 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_f
    typedef boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> number_type;
 public:
    BOOST_STATIC_CONSTEXPR bool is_specialized = false;
-   static number_type (min)() { return number_type(0); }
-   static number_type (max)() { return number_type(0); }
-   static number_type lowest() { return number_type(0); }
-   BOOST_STATIC_CONSTEXPR int digits = 0;
-   BOOST_STATIC_CONSTEXPR int digits10 = 0;
-   BOOST_STATIC_CONSTEXPR int max_digits10 = 0;
-   BOOST_STATIC_CONSTEXPR bool is_signed = false;
+   static number_type(min)()
+   {
+      number_type value(0.5);
+      mpfr_div_2exp(value.backend().data(), value.backend().data(), -mpfr_get_emin(), GMP_RNDN);
+      return value;
+   }
+   static number_type(max)()
+   {
+      number_type value(0.5);
+      mpfr_mul_2exp(value.backend().data(), value.backend().data(), mpfr_get_emax(), GMP_RNDN);
+      return value;
+   }
+   static number_type lowest()
+   {
+      return -(max)();
+   }
+   BOOST_STATIC_CONSTEXPR int digits = INT_MAX;
+   BOOST_STATIC_CONSTEXPR int digits10 = INT_MAX;
+   BOOST_STATIC_CONSTEXPR int max_digits10 = INT_MAX;
+   BOOST_STATIC_CONSTEXPR bool is_signed = true;
    BOOST_STATIC_CONSTEXPR bool is_integer = false;
    BOOST_STATIC_CONSTEXPR bool is_exact = false;
-   BOOST_STATIC_CONSTEXPR int radix = 0;
-   static number_type epsilon() { return number_type(0); }
-   static number_type round_error() { return number_type(0); }
-   BOOST_STATIC_CONSTEXPR int min_exponent = 0;
-   BOOST_STATIC_CONSTEXPR int min_exponent10 = 0;
-   BOOST_STATIC_CONSTEXPR int max_exponent = 0;
-   BOOST_STATIC_CONSTEXPR int max_exponent10 = 0;
-   BOOST_STATIC_CONSTEXPR bool has_infinity = false;
-   BOOST_STATIC_CONSTEXPR bool has_quiet_NaN = false;
+   BOOST_STATIC_CONSTEXPR int radix = 2;
+   static number_type epsilon()
+   {
+      number_type value(1);
+      mpfr_div_2exp(value.backend().data(), value.backend().data(), boost::multiprecision::detail::digits10_2_2(number_type::default_precision()) - 1, GMP_RNDN);
+      return value;
+   }
+   static number_type round_error()
+   {
+      return epsilon() / 2;
+   }
+   BOOST_STATIC_CONSTEXPR long min_exponent = MPFR_EMIN_DEFAULT;
+   BOOST_STATIC_CONSTEXPR long min_exponent10 = (MPFR_EMIN_DEFAULT / 1000) * 301L;
+   BOOST_STATIC_CONSTEXPR long max_exponent = MPFR_EMAX_DEFAULT;
+   BOOST_STATIC_CONSTEXPR long max_exponent10 = (MPFR_EMAX_DEFAULT / 1000) * 301L;
+   BOOST_STATIC_CONSTEXPR bool has_infinity = true;
+   BOOST_STATIC_CONSTEXPR bool has_quiet_NaN = true;
    BOOST_STATIC_CONSTEXPR bool has_signaling_NaN = false;
    BOOST_STATIC_CONSTEXPR float_denorm_style has_denorm = denorm_absent;
    BOOST_STATIC_CONSTEXPR bool has_denorm_loss = false;
-   static number_type infinity() { return number_type(0); }
-   static number_type quiet_NaN() { return number_type(0); }
+   static number_type infinity()
+   {
+      number_type value;
+      mpfr_set_inf(value.backend().data(), 1);
+      return value;
+   }
+   static number_type quiet_NaN()
+   {
+      number_type value;
+      mpfr_set_nan(value.backend().data());
+      return value;
+   }
    static number_type signaling_NaN() { return number_type(0); }
    static number_type denorm_min() { return number_type(0); }
    BOOST_STATIC_CONSTEXPR bool is_iec559 = false;
-   BOOST_STATIC_CONSTEXPR bool is_bounded = false;
+   BOOST_STATIC_CONSTEXPR bool is_bounded = true;
    BOOST_STATIC_CONSTEXPR bool is_modulo = false;
    BOOST_STATIC_CONSTEXPR bool traps = false;
    BOOST_STATIC_CONSTEXPR bool tinyness_before = false;
@@ -2238,13 +2264,13 @@ BOOST_CONSTEXPR_OR_CONST bool numeric_limits<boost::multiprecision::number<boost
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 BOOST_CONSTEXPR_OR_CONST int numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::radix;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
-BOOST_CONSTEXPR_OR_CONST int numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::min_exponent;
+BOOST_CONSTEXPR_OR_CONST long numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::min_exponent;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
-BOOST_CONSTEXPR_OR_CONST int numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::min_exponent10;
+BOOST_CONSTEXPR_OR_CONST long numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::min_exponent10;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
-BOOST_CONSTEXPR_OR_CONST int numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::max_exponent;
+BOOST_CONSTEXPR_OR_CONST long numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::max_exponent;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
-BOOST_CONSTEXPR_OR_CONST int numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::max_exponent10;
+BOOST_CONSTEXPR_OR_CONST long numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::max_exponent10;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>
 BOOST_CONSTEXPR_OR_CONST bool numeric_limits<boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<0>, ExpressionTemplates> >::has_infinity;
 template <boost::multiprecision::expression_template_option ExpressionTemplates>

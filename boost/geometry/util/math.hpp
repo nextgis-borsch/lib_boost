@@ -4,8 +4,8 @@
 // Copyright (c) 2008-2015 Bruno Lalande, Paris, France.
 // Copyright (c) 2009-2015 Mateusz Loskot, London, UK.
 
-// This file was modified by Oracle on 2014, 2015.
-// Modifications copyright (c) 2014-2015, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2014, 2015, 2018.
+// Modifications copyright (c) 2014-2018, Oracle and/or its affiliates.
 
 // Contributed and/or modified by Menelaos Karavelas, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
@@ -68,6 +68,19 @@ template <typename T>
 inline T const& greatest(T const& v1, T const& v2, T const& v3, T const& v4, T const& v5)
 {
     return (std::max)(greatest(v1, v2, v3, v4), v5);
+}
+
+
+template <typename T>
+inline T bounded(T const& v, T const& lower, T const& upper)
+{
+    return (std::min)((std::max)(v, lower), upper);
+}
+
+template <typename T>
+inline T bounded(T const& v, T const& lower)
+{
+    return (std::max)(v, lower);
 }
 
 
@@ -518,7 +531,7 @@ inline T scaled_epsilon(T const& value)
 }
 
 
-// Maybe replace this by boost equals or boost ublas numeric equals or so
+// Maybe replace this by boost equals or so
 
 /*!
     \brief returns true if both arguments are equal.
@@ -756,6 +769,17 @@ template <typename Result, typename T>
 inline Result rounding_cast(T const& v)
 {
     return detail::rounding_cast<Result, T>::apply(v);
+}
+
+/*!
+\brief Short utility to calculate the power
+\ingroup utility
+*/
+template <typename T1, typename T2>
+inline T1 pow(T1 const& a, T2 const& b)
+{
+    using std::pow;
+    return pow(a, b);
 }
 
 } // namespace math
